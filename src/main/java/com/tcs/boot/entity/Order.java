@@ -22,8 +22,18 @@ public class Order {
     private String orderId;
 
     private Long customerId;
+    
+    private String customerEmail;  
 
-    private Double totalAmount;
+    public String getCustomerEmail() {
+		return customerEmail;
+	}
+
+	public void setCustomerEmail(String customerEmail) {
+		this.customerEmail = customerEmail;
+	}
+
+	private Double totalAmount;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;

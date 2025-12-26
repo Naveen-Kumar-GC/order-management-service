@@ -17,7 +17,7 @@ public class OrderController {
     }
 
     // Place Order
-    @PostMapping
+    @PostMapping("/")
     public ResponseEntity<Order> placeOrder(@RequestBody Order order) {
         return ResponseEntity.ok(orderService.placeOrder(order));
     }

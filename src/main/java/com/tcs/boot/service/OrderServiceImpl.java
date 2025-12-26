@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 
 import com.tcs.boot.entity.Order;
 import com.tcs.boot.enums.OrderStatus;
+import com.tcs.boot.exception.OrderCancellationNotAllowedException;
+import com.tcs.boot.exception.OrderModificationNotAllowedException;
+import com.tcs.boot.exception.OrderNotFoundException;
 import com.tcs.boot.repository.OrderRepository;
 
 import java.time.LocalDateTime;
@@ -37,7 +40,7 @@ public class OrderServiceImpl implements OrderService {
         // Mock notifications
         //sendEmail(savedOrder.getOrderId());
         emailService.sendOrderPlacedEmail(
-                "jnavalika@gmail.com",   // later fetch from DB saipavankommi1510@gmail.com
+        		savedOrder.getCustomerEmail(),   // later fetch from DB saipavankommi1510@gmail.com
                 savedOrder.getOrderId()
         );
         sendSMS(savedOrder.getOrderId());
@@ -48,16 +51,20 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order getOrderByOrderId(String orderId) {
         return orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() ->
+                new OrderNotFoundException("Order not found with ID: " + orderId)
+        );
     }
 
     @Override
     public Order updateOrder(String orderId, Order updatedOrder) {
 
         Order existingOrder = getOrderByOrderId(orderId);
-
+        
         if (existingOrder.getStatus() == OrderStatus.SHIPPED) {
-            throw new RuntimeException("Order cannot be modified after shipping");
+            throw new OrderModificationNotAllowedException(
+                    "Order cannot be modified after shipping"
+            );
         }
 
         existingOrder.setItems(updatedOrder.getItems());
@@ -68,21 +75,27 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void cancelOrder(String orderId) {
-
+        
         Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() ->
+                        new OrderNotFoundException("Order not found with ID: " + orderId)
+                );
 
+       
+        
         if (order.getStatus() == OrderStatus.SHIPPED ||
-            order.getStatus() == OrderStatus.DELIVERED) {
-            throw new RuntimeException("Order cannot be cancelled");
-        }
+                order.getStatus() == OrderStatus.DELIVERED) {
+                throw new OrderCancellationNotAllowedException(
+                        "Order cannot be cancelled once shipped or delivered"
+                );
+            }
 
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
 
         // ✅ SEND CANCELLATION EMAIL
         emailService.sendOrderCancelledEmail(
-                "saipavankommi1510@gmail.com",   // later fetch from customer table
+                order.getCustomerEmail(),   // later fetch from customer table
                 order.getOrderId()
         );
     }
